@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Meetings</title>
+</head>
+
+<body>
+
+<h1>Upcoming Meetings</h1>
+
+{% if events %}
+
+<ul>
+
+{% for event in events %}
+
+<li>
+
+<strong>{{ event.summary }}</strong>
+
+<br>
+
+{{ event.start.dateTime }}
+
+</li>
+
+{% endfor %}
+
+</ul>
+
+{% else %}
+
+<p>No meetings found.</p>
+
+{% endif %}
+
+</body>
+
+</html>
