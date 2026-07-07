@@ -52,3 +52,27 @@ def get_repo_info():
         "updated_at": repo["updated_at"]
     }
 
+def get_recent_commits():
+    """
+    Gets the five most recent commits from the GitHub repository.
+
+    """
+
+    url = f"https://api.github.com/repos/{OWNER}/{REPO}/commits"
+
+    response = requests.get(url, headers=get_github_headers())
+
+    if response.status_code != 200:
+        return []
+
+    commits = response.json()
+    recent_commits = []
+
+    for commit in commits[:5]:
+        recent_commits.append({
+            "author": commit["commit"]["author"]["name"],
+            "message": commit["commit"]["message"],
+            "date": commit["commit"]["author"]["date"]
+        })
+
+    return recent_commits
