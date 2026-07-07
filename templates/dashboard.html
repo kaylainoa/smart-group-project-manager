@@ -6,22 +6,30 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Smart Group Project Manager</h1>
-    <!-- shows whether slack message went through or not  -->
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul class="flashes">
-                {% for message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
 
-    <form action="{{ url_for('send_update_to_slack') }}" method="post">
-        <button type="submit">Send Update to Slack</button>
-    </form>
+<header class="top-nav">
+    <nav>
+        <a href="{{ url_for('home') }}">Dashboard</a>
+        <a href="{{ url_for('meetings') }}">Meetings</a>
+        <a href="{{ url_for('reports') }}">Reports</a>
+    </nav>
+</header>
 
-    <p><a href="{{ url_for('reports') }}">View Messages Sent</a></p>
+<h1>Smart Group Project Manager</h1>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul class="flashes">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endwith %}
+
+<form action="{{ url_for('send_update_to_slack') }}" method="post">
+    <button type="submit">Send Update to Slack</button>
+</form>
+
 </body>
 </html>

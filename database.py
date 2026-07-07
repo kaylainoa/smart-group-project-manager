@@ -23,6 +23,15 @@ def init_db():
             sent_at TEXT NOT NULL
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS meeting_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meeting_title TEXT NOT NULL,
+            meeting_time TEXT NOT NULL,
+            notes TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -44,3 +53,34 @@ def get_notification_logs(limit=20):
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+def save_meeting_notes(meeting_title, meeting_time, notes):
+    """Save meeting notes to the database."""
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO meeting_notes (meeting_title, meeting_time, notes, created_at) VALUES (?, ?, ?, ?)",
+        (meeting_title, meeting_time, notes, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_meeting_notes(limit=50):
+    """Retrieve all meeting notes from the database."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM meeting_notes ORDER BY created_at DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_meeting_note_by_id(note_id):
+    """Retrieve a specific meeting note by ID."""
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT * FROM meeting_notes WHERE id = ?", (note_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
