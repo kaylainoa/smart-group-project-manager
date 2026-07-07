@@ -17,3 +17,35 @@ def get_github_headers():
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json"
     }
+
+def get_repo_info():
+    """
+
+    GitHub API endpoint:
+    GET /repos/{owner}/{repo}
+
+    Returns basic repository details that can be displayed
+    on the Smart Group Project Manager dashboard.
+    """
+
+    # Build the API URL for our repository.
+    url = f"https://api.github.com/repos/{OWNER}/{REPO}"
+
+    # Send a GET request to GitHub.
+    response = requests.get(url, headers=get_github_headers())
+
+    # If the request failed, return None.
+    if response.status_code != 200:
+        return None
+
+    # Convert the JSON response into a Python dictionary.
+    repo = response.json()
+
+    # Return only the information our application needs.
+    return {
+        "name": repo["name"],
+        "owner": repo["owner"]["login"],
+        "description": repo["description"],
+        "open_issues": repo["open_issues_count"],
+        "updated_at": repo["updated_at"]
+    }
