@@ -1,7 +1,12 @@
+import os
+
+#FIX: oauthlib rejects http:// redirect URIs by default 
+# this flag allows it for local dev since our redirect_uri is http://localhost:5000
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
-import os
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
@@ -19,7 +24,7 @@ def run_oauth_test():
 
     auth_url, state = flow.authorization_url(
         access_type="offline",
-        include_granted_scopes=True,
+        include_granted_scopes="true",
         prompt="consent"
     )
 
