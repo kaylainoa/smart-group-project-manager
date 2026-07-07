@@ -33,9 +33,11 @@ def get_repo_info():
 
     # Send a GET request to GitHub.
     response = requests.get(url, headers=get_github_headers())
+    print("Status Code:", response.status_code)
 
     # If the request failed, return None.
     if response.status_code != 200:
+        print("Response:", response.text)
         return None
 
     # Convert the JSON response into a Python dictionary.
@@ -49,3 +51,4 @@ def get_repo_info():
         "open_issues": repo["open_issues_count"],
         "updated_at": repo["updated_at"]
     }
+
