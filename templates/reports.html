@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Notification Log</title>
+</head>
+<body>
+    <h1>Slack Notification Log</h1>
+
+    <p>Total Sent: {{ logs|length }}</p>
+    <p>Successful: {{ logs|selectattr('success')|list|length }}</p>
+    <p>Failed: {{ (logs|length) - (logs|selectattr('success')|list|length) }}</p>
+
+    {% if logs %}
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>Status</th>
+            <th>Channel</th>
+            <th>Sent At (UTC)</th>
+            <th>Error</th>
+        </tr>
+        {% for log in logs %}
+        <tr>
+            <td>
+                {% if log.success %}
+                    Sent
+                {% else %}
+                    Failed
+                {% endif %}
+            </td>
+            <td>{{ log.channel }}</td>
+            <td>{{ log.sent_at }}</td>
+            <td>{{ log.error or "—" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>No notifications sent yet.</p>
+    {% endif %}
+</body>
+</html>
