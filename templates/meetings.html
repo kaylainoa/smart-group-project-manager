@@ -1,23 +1,38 @@
-<h1>Upcoming Team Meetings</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upcoming Team Meetings</title>
+</head>
+<body>
+    <h1>Upcoming Team Meetings</h1>
 
-{% if meetings %}
-    <ul>
-    {% for meeting in meetings %}
-        <li>
-            <strong>{{ meeting.title }}</strong><br>
-            {{ meeting.start }}<br>
+    <p>Total Meetings: {{ meetings|length }}</p>
 
-            {% if meeting.location %}
-                Location: {{ meeting.location }}<br>
-            {% endif %}
+    <p>
+        <a href="{{ url_for('home') }}">Back to Dashboard</a>
+    </p>
 
-            {% if meeting.description %}
-                {{ meeting.description }}
-            {% endif %}
-        </li>
-        <br>
-    {% endfor %}
-    </ul>
-{% else %}
+    {% if meetings %}
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>Title</th>
+            <th>Start Time</th>
+            <th>Location</th>
+            <th>Description</th>
+        </tr>
+
+        {% for meeting in meetings %}
+        <tr>
+            <td>{{ meeting.title }}</td>
+            <td>{{ meeting.start }}</td>
+            <td>{{ meeting.location or "—" }}</td>
+            <td>{{ meeting.description or "—" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
     <p>No upcoming meetings.</p>
-{% endif %}
+    {% endif %}
+</body>
+</html>
