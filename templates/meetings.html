@@ -1,40 +1,23 @@
-<!DOCTYPE html>
-<html>
+<h1>Upcoming Team Meetings</h1>
 
-<head>
-    <title>Meetings</title>
-</head>
+{% if meetings %}
+    <ul>
+    {% for meeting in meetings %}
+        <li>
+            <strong>{{ meeting.title }}</strong><br>
+            {{ meeting.start }}<br>
 
-<body>
+            {% if meeting.location %}
+                Location: {{ meeting.location }}<br>
+            {% endif %}
 
-<h1>Upcoming Meetings</h1>
-
-{% if events %}
-
-<ul>
-
-{% for event in events %}
-
-<li>
-
-<strong>{{ event.summary }}</strong>
-
-<br>
-
-{{ event.start.dateTime }}
-
-</li>
-
-{% endfor %}
-
-</ul>
-
+            {% if meeting.description %}
+                {{ meeting.description }}
+            {% endif %}
+        </li>
+        <br>
+    {% endfor %}
+    </ul>
 {% else %}
-
-<p>No meetings found.</p>
-
+    <p>No upcoming meetings.</p>
 {% endif %}
-
-</body>
-
-</html>
