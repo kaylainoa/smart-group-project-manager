@@ -1,8 +1,12 @@
+import os
 from flask import Flask, render_template, redirect, url_for, flash
 from services.calendar_service import get_upcoming_events
 from services.slack_service import send_progress_report
+from services.gemini_service import project_summary
 import database
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "your-secret-key"
@@ -17,12 +21,9 @@ def home():
 
 @app.route("/meetings")
 def meetings():
-
     events = get_upcoming_events()
-
     for event in events:
         print(event["summary"], event["start"]["dateTime"], event["end"]["dateTime"])
-
     return "Check your terminal!"
 
 
@@ -32,21 +33,22 @@ def reports():
     return render_template("reports.html", logs=logs)
 
 
-# placeholder/hard coded slack message
 @app.route("/send-update-to-slack", methods=["POST"])
 def send_update_to_slack():
+    raw_notes = "Discussed dashboard layout. John finished GitHub connection. Need to fix database bugs."
+    raw_commits = ["feat: linked github service", "fix: resolved connection pool leak"]
+    raw_deadlines = ["Milestone 2 due Friday at 5 PM"]
+
+    ai_summary = project_summary(raw_notes, raw_commits, raw_deadlines)
+    
     report = {
-        "team_name": "Smart Group Project Manager",
-        "period": "This Week",
-        "completed": ["Set up GitHub sync"],
-        "in_progress": ["Building Slack integration"],
-        "blockers": [],
+        "text": ai_summary 
     }
 
     success, error = send_progress_report(report)
 
     if success:
-        flash("Update sent to Slack!")
+        flash("AI-generated update sent to Slack!")
     else:
         flash(f"Failed to send update to Slack: {error}")
 
