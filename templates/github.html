@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitHub Progress</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>GitHub Progress</h1>
+
+    <h2>Repository Info</h2>
+    {% if repo_info %}
+        <p><strong>Name:</strong> {{ repo_info.name }}</p>
+        <p><strong>Owner:</strong> {{ repo_info.owner }}</p>
+        <p><strong>Open Issues:</strong> {{ repo_info.open_issues }}</p>
+        <p><strong>Last Updated:</strong> {{ repo_info.updated_at }}</p>
+    {% else %}
+        <p>Repository information could not be loaded.</p>
+    {% endif %}
+
+    <h2>Recent Commits</h2>
+    {% if commits %}
+        <ul>
+            {% for commit in commits %}
+                <li>
+                    <strong>{{ commit.author }}</strong><br>
+                    {{ commit.message }}<br>
+                    <small>{{ commit.date }}</small>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No recent commits found.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('home') }}">Back to Dashboard</a></p>
+</body>
+</html>
