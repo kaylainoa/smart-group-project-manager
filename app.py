@@ -9,7 +9,7 @@ from database import generate_tasks_from_notes
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, flash, session, request
 from google.oauth2.credentials import Credentials
-
+from services.github_service import get_repo_info, get_recent_commits
 load_dotenv()
 
 
@@ -253,6 +253,11 @@ def deadlines():
 
     return render_template("deadlines.html", deadlines=deadlines_from_db)
 
+@app.route("/github")
+def github():
+    repo_info = get_repo_info()
+    commits = get_recent_commits()
+    return render_template("github.html", repo_info=repo_info, commits=commits)
 
 # the "Enter Notes" box on the dashboard - not tied to a specific meeting like
 # the notes form on /meetings is, so we just save it as a "General Note"
