@@ -181,6 +181,10 @@ def init_db():
         )
     """)
 
+    # replaced by per-note sending (each note now gets its own Send button
+    # instead of one shared pending summary) - drop the old singleton table
+    conn.execute("DROP TABLE IF EXISTS pending_slack_summary")
+
     # these two columns got added after meetings/deadlines already existed, so we
     # tack them on with ALTER TABLE instead of recreating (keeps existing rows around)
     # - user_email: whose meeting/deadline this is, so people don't see each other's
@@ -189,6 +193,11 @@ def init_db():
     _add_column_if_missing(conn, "meetings", "calendar_id", "TEXT")
     _add_column_if_missing(conn, "deadlines", "user_email", "TEXT")
     _add_column_if_missing(conn, "deadlines", "calendar_id", "TEXT")
+    # this db file predates meeting_id being added to meeting_notes
+    _add_column_if_missing(conn, "meeting_notes", "meeting_id", "INTEGER")
+    # tracks when a note's update was posted to Slack, so its card can show
+    # "Sent" instead of the button once that's happened
+    _add_column_if_missing(conn, "meeting_notes", "sent_at", "TEXT")
 
     conn.commit()
     conn.close()
@@ -304,6 +313,51 @@ def get_meeting_notes():
     return [dict(row) for row in rows]
 
 
+# just the notes from the dashboard's "Enter Notes" box (meeting_id is NULL),
+# not the ones tied to a specific meeting on /meetings - shown as cards on
+# the dashboard's "Saved Notes" column
+def get_general_notes():
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM meeting_notes WHERE meeting_id IS NULL ORDER BY created_at DESC"
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_note_by_id(note_id):
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM meeting_notes WHERE id = ?", (note_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def mark_note_sent(note_id):
+    conn = get_connection()
+    conn.execute(
+        "UPDATE meeting_notes SET sent_at = ? WHERE id = ?",
+        (datetime.now(timezone.utc).isoformat(), note_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+# wipes every card in the dashboard's "Saved Notes" column (general notes only,
+# not meeting-specific ones) along with any tasks generated from them
+def clear_general_notes():
+    conn = get_connection()
+    note_ids = [
+        row["id"] for row in
+        conn.execute("SELECT id FROM meeting_notes WHERE meeting_id IS NULL").fetchall()
+    ]
+    if note_ids:
+        placeholders = ",".join("?" for _ in note_ids)
+        conn.execute(f"DELETE FROM tasks WHERE note_id IN ({placeholders})", note_ids)
+        conn.execute(f"DELETE FROM meeting_notes WHERE id IN ({placeholders})", note_ids)
+    conn.commit()
+    conn.close()
+
+
 # locks in which calendar this user wants to use. "DO NOTHING" on conflict means
 # if they somehow submit the picker form twice, the second one is just ignored -
 # once you've picked a calendar it's permanent
@@ -328,6 +382,7 @@ def get_calendar_selection(user_email):
     ).fetchone()
     conn.close()
     return dict(row) if row else None
+
 
 
 def save_task(note_id, task_text, status="Not Started"):

@@ -14,6 +14,12 @@ SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 def format_progress_report(report):
+    # AI-generated summaries (Gemini) come through as plain {"text": "..."} -
+    # post that as-is instead of running it through the completed/in_progress/
+    # blockers format below, which expects a different report shape
+    if report.get("text"):
+        return report["text"]
+
     lines = [f"*Progress Report — {report.get('team_name', 'Team')}*"]
 
     if report.get("period"):
