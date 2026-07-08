@@ -27,10 +27,6 @@
     {% endif %}
 {% endwith %}
 
-<form action="/test-gemini" method="POST">
-    <button type="submit">Send Update to Slack</button>
-</form>
-
 {% if show_picker %}
 
 <h2>Which calendar should we pull from?</h2>
@@ -83,10 +79,40 @@
     <div>
         <h2>Enter Notes</h2>
         <form method="POST" action="{{ url_for('add_note') }}">
+            <input type="text" name="title" placeholder="Title (optional)" style="width: 260px;">
+            <br><br>
             <textarea name="notes" rows="6" cols="40" placeholder="Enter notes..." required></textarea>
             <br>
             <button type="submit">Save Notes</button>
         </form>
+    </div>
+
+    <div>
+        <h2>Saved Notes</h2>
+        <form method="POST" action="{{ url_for('clear_notes') }}">
+            <button type="submit">Clear Notes</button>
+        </form>
+        <br>
+        {% if saved_notes %}
+            {% for note in saved_notes %}
+            <div style="border: 1px solid #999; border-radius: 6px; padding: 10px; margin-bottom: 10px; width: 260px;">
+                <details>
+                    <summary>{{ note.meeting_title }}</summary>
+                    <p>{{ note.notes }}</p>
+                </details>
+                <p><small>Saved {{ note.created_at | pretty_date }}</small></p>
+                {% if note.sent_at %}
+                    <p><small>Sent to Slack {{ note.sent_at | pretty_date }}</small></p>
+                {% else %}
+                    <form method="POST" action="{{ url_for('send_note_to_slack', note_id=note.id) }}">
+                        <button type="submit">Send to Slack</button>
+                    </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>No saved notes yet.</p>
+        {% endif %}
     </div>
 
 </div>

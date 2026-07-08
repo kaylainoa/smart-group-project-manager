@@ -3,7 +3,7 @@ os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 from datetime import datetime, timezone, timedelta
 from services.calendar_service import create_flow, get_meeting_events, get_project_deadlines, get_user_email, list_calendars
 from services.slack_service import send_progress_report
-from services.gemini_service import project_summary
+from services.gemini_service import categorize_update
 import database
 from database import generate_tasks_from_notes
 from dotenv import load_dotenv
@@ -71,6 +71,36 @@ def refresh_deadlines(credentials, user_email, calendar_id):
     return database.get_deadlines(user_email, calendar_id)
 
 
+# turns raw note text into the {"team_name", "period", "completed", "in_progress",
+# "blockers"} shape send_progress_report expects, using Gemini to sort the note
+# into buckets and pulling in real deadlines for context if the user's logged in
+def build_slack_report(notes_text, user_email):
+    raw_commits = ["feat: linked github service", "fix: resolved connection pool leak"]
+
+    raw_deadlines = []
+    if user_email:
+        selection = database.get_calendar_selection(user_email)
+        if selection:
+            deadlines = database.get_deadlines(user_email, selection["calendar_id"])
+            raw_deadlines = [f"{d['title']} - due {d['due_time']}" for d in deadlines]
+
+    categorized = categorize_update(notes_text, raw_commits, raw_deadlines)
+
+    # this week's Monday through Friday, for the "period" line
+    today = datetime.now(timezone.utc).date()
+    monday = today - timedelta(days=today.weekday())
+    friday = monday + timedelta(days=4)
+    period = f"{monday.strftime('%B %d')} - {friday.strftime('%B %d, %Y')}"
+
+    return {
+        "team_name": f"Update sent from {user_email or 'Unknown user'}",
+        "period": period,
+        "completed": categorized["completed"],
+        "in_progress": categorized["in_progress"],
+        "blockers": categorized["blockers"]
+    }
+
+
 @app.route("/")
 def home():
     logs = database.get_notification_logs()
@@ -108,7 +138,8 @@ def home():
         meetings=meetings_from_db,
         deadlines=deadlines_from_db,
         show_picker=show_picker,
-        available_calendars=available_calendars
+        available_calendars=available_calendars,
+        saved_notes=database.get_general_notes()
     )
 
 @app.route("/authorize")
@@ -260,14 +291,17 @@ def github():
     return render_template("github.html", repo_info=repo_info, commits=commits)
 
 # the "Enter Notes" box on the dashboard - not tied to a specific meeting like
-# the notes form on /meetings is, so we just save it as a "General Note"
+# the notes form on /meetings is, so we just save it as a "General Note".
+# each saved note gets its own card + Send button (see send_note_to_slack
+# below) instead of generating a Slack report right here
 @app.route("/notes", methods=["POST"])
 def add_note():
     notes = request.form["notes"]
+    title = request.form.get("title", "").strip() or "General Note"
 
     note_id = database.save_meeting_notes(
         None,
-        "General Note",
+        title,
         datetime.now(timezone.utc).isoformat(),
         notes
     )
@@ -277,7 +311,41 @@ def add_note():
     for task in generated_tasks:
         database.save_task(note_id, task)
 
-    flash("Note saved and tasks generated.")
+    flash("Note saved.")
+    return redirect(url_for("home"))
+
+
+# wipes the whole "Saved Notes" column
+@app.route("/notes/clear", methods=["POST"])
+def clear_notes():
+    database.clear_general_notes()
+    flash("Saved notes cleared.")
+    return redirect(url_for("home"))
+
+
+# the Send button on an individual note card - generates the Gemini report
+# from just that note's text and posts it right away
+@app.route("/notes/<int:note_id>/send", methods=["POST"])
+def send_note_to_slack(note_id):
+    note = database.get_note_by_id(note_id)
+    if note is None:
+        flash("That note could not be found.")
+        return redirect(url_for("home"))
+
+    user_email = None
+    if "credentials" in session:
+        credentials = Credentials(**session["credentials"])
+        user_email = get_current_user_email(credentials)
+
+    report = build_slack_report(note["notes"], user_email)
+    success, error = send_progress_report(report)
+
+    if success:
+        database.mark_note_sent(note_id)
+        flash("Update sent to Slack!")
+    else:
+        flash(f"Failed to send update to Slack: {error}")
+
     return redirect(url_for("home"))
 
 
@@ -287,26 +355,6 @@ def reports():
     return render_template("reports.html", logs=logs)
 
 
-@app.route("/test-gemini", methods=["POST"])
-def send_update_to_slack():
-    raw_notes = "Discussed dashboard layout. John finished GitHub connection. Need to fix database bugs."
-    raw_commits = ["feat: linked github service", "fix: resolved connection pool leak"]
-    raw_deadlines = ["Milestone 2 due Friday at 5 PM"]
-
-    ai_summary = project_summary(raw_notes, raw_commits, raw_deadlines)
-    
-    report = {
-        "text": ai_summary 
-    }
-
-    success, error = send_progress_report(report)
-
-    if success:
-        flash("AI-generated update sent to Slack!")
-    else:
-        flash(f"Failed to send update to Slack: {error}")
-
-    return redirect(url_for("home"))
 
 
 if __name__ == "__main__":
