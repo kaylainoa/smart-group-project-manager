@@ -147,5 +147,5 @@ smart-group-project-manager/
     ├── test_slack.py
     └── test_github.py
 ```
-# Created by  Asyat Sow, Biftu Mohammed, Jakha Cham, & Kayla Inoa
-# SEO Tech Developer - Project #2
+### Created by  Asyat Sow, Biftu Mohammed, Jakha Cham, & Kayla Inoa
+### SEO Tech Developer - Project #2
