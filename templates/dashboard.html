@@ -16,8 +16,7 @@
     </nav>
 </header>
 
-<!-- <h1>Smart Group Project Manager</h1> -->
-<h1>NEW DASHBOARD TEST</h1>
+<h1>Smart Group Project Manager</h1>
 {% with messages = get_flashed_messages() %}
     {% if messages %}
         <ul class="flashes">
@@ -31,6 +30,68 @@
 <form action="/test-gemini" method="POST">
     <button type="submit">Send Update to Slack</button>
 </form>
+
+{% if show_picker %}
+
+<h2>Which calendar should we pull from?</h2>
+<p>This can only be set once, so pick carefully.</p>
+
+{% if available_calendars %}
+<form method="POST" action="{{ url_for('select_calendar') }}">
+    {% for calendar in available_calendars %}
+    <div>
+        <label>
+            <input type="radio" name="calendar_id" value="{{ calendar.id }}" required>
+            {{ calendar.name }}
+        </label>
+    </div>
+    {% endfor %}
+    <button type="submit">Use this calendar</button>
+</form>
+{% else %}
+<p>No calendars found on this Google account.</p>
+{% endif %}
+
+{% else %}
+
+<div style="display: flex; gap: 40px; margin-top: 20px;">
+
+    <div>
+        <h2>Upcoming Meetings</h2>
+        {% if meetings %}
+            <ul>
+                {% for meeting in meetings %}
+                    <li>{{ meeting.title }} — {{ meeting.start_time }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No upcoming meetings.</p>
+        {% endif %}
+
+        <h2>Upcoming Projects</h2>
+        {% if deadlines %}
+            <ul>
+                {% for deadline in deadlines %}
+                    <li>{{ deadline.title }} — Due {{ deadline.due_time | pretty_date }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No upcoming projects.</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <h2>Enter Notes</h2>
+        <form method="POST" action="{{ url_for('add_note') }}">
+            <textarea name="notes" rows="6" cols="40" placeholder="Enter notes..." required></textarea>
+            <br>
+            <button type="submit">Save Notes</button>
+        </form>
+    </div>
+
+</div>
+
+{% endif %}
 
 </body>
 </html>
