@@ -96,6 +96,14 @@ def get_connection():
     return conn
 
 
+# small helper so we can safely add a new column to a table that already exists
+# and already has data in it, without wiping anything out
+def _add_column_if_missing(conn, table, column, coltype):
+    existing = [row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
+
+
 def init_db():
     conn = get_connection()
 
@@ -154,6 +162,34 @@ def init_db():
         )
     """)
 
+    # a prior version of this table allowed multiple calendars per user (composite
+    # primary key); drop and recreate to enforce exactly one, permanent, per user
+    pk_columns = [
+        row[1] for row in conn.execute("PRAGMA table_info(user_calendar_selection)").fetchall()
+        if row[5] > 0
+    ]
+    if pk_columns and pk_columns != ["user_email"]:
+        conn.execute("DROP TABLE user_calendar_selection")
+
+    # remembers which Google Calendar each teammate picked on their first login,
+    # so we know where to pull their events from every time after that
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_calendar_selection (
+            user_email TEXT PRIMARY KEY,
+            calendar_id TEXT NOT NULL,
+            calendar_name TEXT
+        )
+    """)
+
+    # these two columns got added after meetings/deadlines already existed, so we
+    # tack them on with ALTER TABLE instead of recreating (keeps existing rows around)
+    # - user_email: whose meeting/deadline this is, so people don't see each other's
+    # - calendar_id: which of that user's calendars it came from
+    _add_column_if_missing(conn, "meetings", "user_email", "TEXT")
+    _add_column_if_missing(conn, "meetings", "calendar_id", "TEXT")
+    _add_column_if_missing(conn, "deadlines", "user_email", "TEXT")
+    _add_column_if_missing(conn, "deadlines", "calendar_id", "TEXT")
+
     conn.commit()
     conn.close()
 
@@ -178,52 +214,63 @@ def generate_tasks_from_notes(notes):
 
     return tasks
 
-def save_meeting(event):
+# saves one calendar event as a meeting. "OR IGNORE" means if we've already saved
+# this exact event before (same google_event_id), it just skips it instead of erroring
+def save_meeting(event, user_email, calendar_id):
     conn = get_connection()
     conn.execute("""
         INSERT OR IGNORE INTO meetings
-        (google_event_id, title, start_time, location, description)
-        VALUES (?, ?, ?, ?, ?)
+        (google_event_id, title, start_time, location, description, user_email, calendar_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (
         event["id"],
         event["title"],
         event["start"],
         event.get("location", ""),
-        event.get("description", "")
+        event.get("description", ""),
+        user_email,
+        calendar_id
     ))
     conn.commit()
     conn.close()
 
 
-def get_meetings():
+# only pulls back meetings that belong to this specific user + calendar, so
+# teammates never see each other's stuff on the dashboard
+def get_meetings(user_email, calendar_id):
     conn = get_connection()
     rows = conn.execute(
-        "SELECT * FROM meetings ORDER BY start_time ASC"
+        "SELECT * FROM meetings WHERE user_email = ? AND calendar_id = ? ORDER BY start_time ASC",
+        (user_email, calendar_id)
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 
 
-def save_deadline(event):
+# same idea as save_meeting, just for the deadline-flagged events
+def save_deadline(event, user_email, calendar_id):
     conn = get_connection()
     conn.execute("""
         INSERT OR IGNORE INTO deadlines
-        (google_event_id, title, due_time, description)
-        VALUES (?, ?, ?, ?)
+        (google_event_id, title, due_time, description, user_email, calendar_id)
+        VALUES (?, ?, ?, ?, ?, ?)
     """, (
         event["id"],
         event["title"],
         event["start"],
-        event.get("description", "")
+        event.get("description", ""),
+        user_email,
+        calendar_id
     ))
     conn.commit()
     conn.close()
 
 
-def get_deadlines():
+def get_deadlines(user_email, calendar_id):
     conn = get_connection()
     rows = conn.execute(
-        "SELECT * FROM deadlines ORDER BY due_time ASC"
+        "SELECT * FROM deadlines WHERE user_email = ? AND calendar_id = ? ORDER BY due_time ASC",
+        (user_email, calendar_id)
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
@@ -255,6 +302,32 @@ def get_meeting_notes():
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+# locks in which calendar this user wants to use. "DO NOTHING" on conflict means
+# if they somehow submit the picker form twice, the second one is just ignored -
+# once you've picked a calendar it's permanent
+def save_calendar_selection(user_email, calendar_id, calendar_name):
+    conn = get_connection()
+    conn.execute("""
+        INSERT INTO user_calendar_selection (user_email, calendar_id, calendar_name)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_email) DO NOTHING
+    """, (user_email, calendar_id, calendar_name))
+    conn.commit()
+    conn.close()
+
+
+# returns None if this user hasn't picked a calendar yet - that's how app.py
+# knows whether to show them the picker or the actual dashboard
+def get_calendar_selection(user_email):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT calendar_id, calendar_name FROM user_calendar_selection WHERE user_email = ?",
+        (user_email,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 
 def save_task(note_id, task_text, status="Not Started"):
