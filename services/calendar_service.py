@@ -16,7 +16,7 @@ def create_flow():
     flow = Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE,
         scopes=SCOPES,
-        redirect_uri="http://localhost:5000/oauth2callback"
+        redirect_uri="http://127.0.0.1:5000/oauth2callback"
     )
 
     return flow
@@ -81,3 +81,17 @@ def get_upcoming_events(credentials, max_results=10):
         )
 
     return meeting_list
+
+def get_project_deadlines(credentials, max_results=10):
+    events = get_upcoming_events(credentials, max_results)
+
+    deadlines = []
+
+    for event in events:
+        title = event["title"].lower()
+        description = event["description"].lower()
+
+        if "deadline" in title or "due" in title or "deadline" in description or "due" in description:
+            deadlines.append(event)
+
+    return deadlines

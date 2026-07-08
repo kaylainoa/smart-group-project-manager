@@ -1,6 +1,6 @@
 import os
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1" 
-from services.calendar_service import create_flow, get_upcoming_events
+from services.calendar_service import create_flow, get_upcoming_events, get_project_deadlines
 from services.slack_service import send_progress_report
 from services.gemini_service import project_summary
 import database
@@ -32,6 +32,7 @@ def authorize():
         )
 
         session["state"] = state
+        session["code_verifier"] = flow.code_verifier
         return redirect(authorization_url)
 
     except Exception as e:
@@ -42,6 +43,7 @@ def authorize():
 @app.route("/oauth2callback")
 def oauth2callback():
     flow = create_flow()
+    flow.code_verifier = session.get("code_verifier")
     flow.fetch_token(authorization_response=request.url)
 
     credentials = flow.credentials
@@ -57,8 +59,7 @@ def oauth2callback():
 
     return redirect(url_for("meetings"))
 
-
-@app.route("/meetings")
+@app.route("/meetings", methods=["GET", "POST"])
 def meetings():
     if "credentials" not in session:
         return redirect(url_for("authorize"))
@@ -67,7 +68,58 @@ def meetings():
 
     events = get_upcoming_events(credentials, max_results=10)
 
-    return render_template("meetings.html", meetings=events)
+    for event in events:
+        database.save_meeting(event)
+
+    meetings_from_db = database.get_meetings()
+
+    if request.method == "POST":
+        meeting_id = request.form["meeting_id"]
+        meeting_title = request.form["meeting_title"]
+        meeting_time = request.form["meeting_time"]
+        notes = request.form["notes"]
+
+        note_id = database.save_meeting_notes(
+            meeting_id,
+            meeting_title,
+            meeting_time,
+            notes
+        )
+
+        generated_tasks = generate_tasks_from_notes(notes)
+
+        for task in generated_tasks:
+            database.save_task(note_id, task)
+
+        flash("Meeting notes saved and tasks generated.")
+        return redirect(url_for("meetings"))
+
+    notes = database.get_meeting_notes()
+    tasks = database.get_tasks()
+
+    return render_template(
+        "meetings.html",
+        meetings=meetings_from_db,
+        notes=notes,
+        tasks=tasks
+    )
+
+@app.route("/deadlines")
+def deadlines():
+    if "credentials" not in session:
+        return redirect(url_for("authorize"))
+
+    credentials = Credentials(**session["credentials"])
+
+    deadline_events = get_project_deadlines(credentials, max_results=20)
+
+    for deadline in deadline_events:
+        database.save_deadline(deadline)
+
+    deadlines_from_db = database.get_deadlines()
+
+    return render_template("deadlines.html", deadlines=deadlines_from_db)
+
 
 @app.route("/reports")
 def reports():

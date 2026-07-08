@@ -12,7 +12,7 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 CLIENT_SECRETS_FILE = "client_info.json"
 
-REDIRECT_URI = "http://localhost:5000/oauth2callback"
+REDIRECT_URI = "http://127.0.0.1:5000/oauth2callback"
 
 
 def run_oauth_test():
