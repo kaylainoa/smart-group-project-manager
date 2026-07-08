@@ -127,7 +127,7 @@ def reports():
     return render_template("reports.html", logs=logs)
 
 
-@app.route("/send-update-to-slack", methods=["POST"])
+@app.route("/test-gemini", methods=["POST"])
 def send_update_to_slack():
     raw_notes = "Discussed dashboard layout. John finished GitHub connection. Need to fix database bugs."
     raw_commits = ["feat: linked github service", "fix: resolved connection pool leak"]
@@ -150,4 +150,4 @@ def send_update_to_slack():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=8080)
