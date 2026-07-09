@@ -117,6 +117,65 @@
         {% endif %}
     </div>
 
+    <div class="github-activity">
+        <h2>GitHub Activity</h2>
+
+        {% if not github_repo_url %}
+            <form method="POST" action="{{ url_for('set_github_repo') }}">
+                <input type="text" name="repo_url" placeholder="GitHub repo URL (e.g. github.com/owner/repo)">
+                <br><br>
+                <button type="submit">Track this repo</button>
+            </form>
+        {% elif github_activity %}
+            <p><strong>{{ github_activity.repo.name }}</strong> — {{ github_activity.repo.open_issues }} open issue(s)</p>
+
+            <div class="github-top-row">
+                {% if pie_slices %}
+                <div class="pie-chart-wrap">
+                    <svg viewBox="0 0 200 200" width="120" height="120" role="img" aria-label="Contributions by teammate">
+                        {% for slice in pie_slices %}
+                            {% if slice.path %}
+                                <path d="{{ slice.path }}" fill="{{ slice.color }}" stroke="#fffdf8" stroke-width="3"></path>
+                            {% else %}
+                                <circle cx="100" cy="100" r="90" fill="{{ slice.color }}" stroke="#fffdf8" stroke-width="3"></circle>
+                            {% endif %}
+                        {% endfor %}
+                    </svg>
+                    <ul class="pie-legend">
+                        {% for slice in pie_slices %}
+                            <li><span class="legend-swatch" style="background: {{ slice.color }};"></span>{{ slice.label }} — {{ slice.percent }}%</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if github_activity.commits %}
+                <div class="most-recent-commit">
+                    <p class="note-meta"><small>Most recent commit</small></p>
+                    <p>{{ github_activity.commits[0].message }}</p>
+                    <p class="note-meta"><small>{{ github_activity.commits[0].author }} — {{ github_activity.commits[0].date | pretty_date }}</small></p>
+                </div>
+                {% endif %}
+            </div>
+
+            <h3>Recent Commits</h3>
+            {% if github_activity.commits %}
+                <ul class="commit-list">
+                    {% for commit in github_activity.commits %}
+                    <li>
+                        <a href="{{ commit.url }}" target="_blank" rel="noopener">{{ commit.message }}</a>
+                        <br><small class="note-meta">{{ commit.author }} — {{ commit.date | pretty_date }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No commits found.</p>
+            {% endif %}
+        {% else %}
+            <p>Couldn't load activity for that repo.</p>
+        {% endif %}
+    </div>
+
 </div>
 
 {% endif %}

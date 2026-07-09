@@ -185,6 +185,15 @@ def init_db():
     # instead of one shared pending summary) - drop the old singleton table
     conn.execute("DROP TABLE IF EXISTS pending_slack_summary")
 
+    # project-wide settings (not per-user, unlike calendar selection) - right
+    # now just holds which GitHub repo the dashboard/Slack reports pull from
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS project_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            github_repo_url TEXT
+        )
+    """)
+
     # these two columns got added after meetings/deadlines already existed, so we
     # tack them on with ALTER TABLE instead of recreating (keeps existing rows around)
     # - user_email: whose meeting/deadline this is, so people don't see each other's
@@ -356,6 +365,25 @@ def clear_general_notes():
         conn.execute(f"DELETE FROM meeting_notes WHERE id IN ({placeholders})", note_ids)
     conn.commit()
     conn.close()
+
+
+# unlike calendar selection, this can be changed anytime - it's a project-wide
+# setting, not tied to any one person's identity/permissions
+def save_github_repo_url(repo_url):
+    conn = get_connection()
+    conn.execute("""
+        INSERT INTO project_settings (id, github_repo_url) VALUES (1, ?)
+        ON CONFLICT(id) DO UPDATE SET github_repo_url = excluded.github_repo_url
+    """, (repo_url,))
+    conn.commit()
+    conn.close()
+
+
+def get_github_repo_url():
+    conn = get_connection()
+    row = conn.execute("SELECT github_repo_url FROM project_settings WHERE id = 1").fetchone()
+    conn.close()
+    return row["github_repo_url"] if row else None
 
 
 # locks in which calendar this user wants to use. "DO NOTHING" on conflict means

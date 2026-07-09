@@ -1,5 +1,6 @@
 import os
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+import math
 from datetime import datetime, timezone, timedelta
 from services.calendar_service import create_flow, get_meeting_events, get_project_deadlines, get_user_email, list_calendars
 from services.slack_service import send_progress_report
@@ -9,7 +10,7 @@ from database import generate_tasks_from_notes
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, flash, session, request
 from google.oauth2.credentials import Credentials
-from services.github_service import get_repo_info, get_recent_commits
+from services.github_service import get_project_activity
 load_dotenv()
 
 
@@ -71,11 +72,77 @@ def refresh_deadlines(credentials, user_email, calendar_id):
     return database.get_deadlines(user_email, calendar_id)
 
 
+# pastel tints of the same 8-hue categorical order the dataviz palette
+# validates - fixed order, never regenerated. yellow/magenta are held back
+# from the tint since they're already near the top of the lightness band;
+# re-validated with scripts/validate_palette.js against our card surface
+# (#fffdf8) before shipping. anything past slot 7 folds into "Other" (muted
+# gray) instead of a synthesized 9th hue
+PIE_COLORS = ["#5090dd", "#44bd92", "#eda305", "#2e992e", "#6b5db7", "#e86a69", "#ea88ad", "#ef8359"]
+PIE_OTHER_COLOR = "#898781"
+
+
+# turns [{"login", "contributions"}, ...] into SVG pie wedges (path + color +
+# label + percent) the template can just loop over and draw
+def build_pie_chart(contributors, cx=100, cy=100, r=90):
+    if not contributors:
+        return []
+
+    top = contributors[:7]
+    rest = contributors[7:]
+
+    slice_data = [(c["login"], c["contributions"]) for c in top]
+    if rest:
+        slice_data.append(("Other", sum(c["contributions"] for c in rest)))
+
+    total = sum(count for _, count in slice_data)
+    if total == 0:
+        return []
+
+    slices = []
+    angle = 0.0
+
+    for i, (label, count) in enumerate(slice_data):
+        fraction = count / total
+        start_angle = angle
+        end_angle = angle + fraction * 2 * math.pi
+        color = PIE_OTHER_COLOR if label == "Other" else PIE_COLORS[i % len(PIE_COLORS)]
+
+        if len(slice_data) == 1:
+            # a single slice is the whole circle - the arc math below is
+            # degenerate at exactly 360 degrees, so draw a plain circle instead
+            path = None
+        else:
+            x1 = cx + r * math.sin(start_angle)
+            y1 = cy - r * math.cos(start_angle)
+            x2 = cx + r * math.sin(end_angle)
+            y2 = cy - r * math.cos(end_angle)
+            large_arc = 1 if (end_angle - start_angle) > math.pi else 0
+            path = f"M{cx},{cy} L{x1:.2f},{y1:.2f} A{r},{r} 0 {large_arc} 1 {x2:.2f},{y2:.2f} Z"
+
+        slices.append({
+            "label": label,
+            "count": count,
+            "percent": round(fraction * 100),
+            "color": color,
+            "path": path
+        })
+
+        angle = end_angle
+
+    return slices
+
+
 # turns raw note text into the {"team_name", "period", "completed", "in_progress",
 # "blockers"} shape send_progress_report expects, using Gemini to sort the note
-# into buckets and pulling in real deadlines for context if the user's logged in
+# into buckets and pulling in real deadlines + real GitHub commits for context
 def build_slack_report(notes_text, user_email):
-    raw_commits = ["feat: linked github service", "fix: resolved connection pool leak"]
+    raw_commits = []
+    repo_url = database.get_github_repo_url()
+    if repo_url:
+        activity = get_project_activity(repo_url, limit=5)
+        if activity:
+            raw_commits = [f"{c['author']}: {c['message']}" for c in activity["commits"]]
 
     raw_deadlines = []
     if user_email:
@@ -132,6 +199,15 @@ def home():
                 ]
                 deadlines_from_db = refresh_deadlines(credentials, user_email, calendar_id)
 
+    github_repo_url = database.get_github_repo_url()
+    github_activity = None
+    pie_slices = []
+
+    if github_repo_url:
+        github_activity = get_project_activity(github_repo_url, limit=3)
+        if github_activity:
+            pie_slices = build_pie_chart(github_activity["contributors"])
+
     return render_template(
         "dashboard.html",
         logs=logs,
@@ -139,8 +215,30 @@ def home():
         deadlines=deadlines_from_db,
         show_picker=show_picker,
         available_calendars=available_calendars,
-        saved_notes=database.get_general_notes()
+        saved_notes=database.get_general_notes(),
+        github_repo_url=github_repo_url,
+        github_activity=github_activity,
+        pie_slices=pie_slices
     )
+
+
+# saves (or updates) which GitHub repo the dashboard/Slack reports pull
+# activity from - a project-wide setting, so anyone can set/change it
+@app.route("/settings/github", methods=["POST"])
+def set_github_repo():
+    repo_url = request.form.get("repo_url", "").strip()
+    if not repo_url:
+        flash("Enter a GitHub repo URL first.")
+        return redirect(url_for("home"))
+
+    activity = get_project_activity(repo_url)
+    if activity is None:
+        flash("Couldn't find that repo - check the URL and try again.")
+        return redirect(url_for("home"))
+
+    database.save_github_repo_url(repo_url)
+    flash(f"Now tracking \"{activity['repo']['name']}\".")
+    return redirect(url_for("home"))
 
 @app.route("/authorize")
 def authorize():
