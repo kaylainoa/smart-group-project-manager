@@ -259,7 +259,7 @@ def home():
         deadlines=deadlines_from_db,
         show_picker=show_picker,
         available_calendars=available_calendars,
-        saved_notes=database.get_general_notes(),
+        saved_notes=database.get_meeting_notes(),
         github_repo_url=github_repo_url,
         github_activity=github_activity,
         pie_slices=pie_slices
@@ -406,26 +406,6 @@ def meetings():
         tasks=tasks
     )
 
-@app.route("/deadlines")
-def deadlines():
-    if "credentials" not in session:
-        return redirect(url_for("authorize"))
-
-    credentials = Credentials(**session["credentials"])
-
-    user_email = get_current_user_email(credentials)
-    if user_email is None:
-        session.clear()
-        return redirect(url_for("authorize"))
-
-    selection = database.get_calendar_selection(user_email)
-    if selection is None:
-        return redirect(url_for("home"))
-
-    deadlines_from_db = refresh_deadlines(credentials, user_email, selection["calendar_id"])
-
-    return render_template("deadlines.html", deadlines=deadlines_from_db)
-
 @app.route("/github")
 def github():
     repo_info = get_repo_info()
@@ -488,6 +468,14 @@ def send_note_to_slack(note_id):
     else:
         flash(f"Failed to send update to Slack: {error}")
 
+    return redirect(url_for("home"))
+
+
+# the x button on a note card
+@app.route("/notes/<int:note_id>/delete", methods=["POST"])
+def delete_note(note_id):
+    database.delete_note(note_id)
+    flash("Note deleted.")
     return redirect(url_for("home"))
 
 
