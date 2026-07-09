@@ -78,6 +78,8 @@ def categorize_update(meeting_notes, commits, deadlines):
                 temperature=0.3
             )
         )
+        return _parse_categorized_response(response.text)
+
     except Exception as e:
         print("Gemini categorization failed:", e)
 

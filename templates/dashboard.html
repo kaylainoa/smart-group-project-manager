@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Smart Group Project Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 <body>
 
@@ -50,7 +51,7 @@
 
 {% else %}
 
-<div style="display: flex; gap: 40px; margin-top: 20px;">
+<div class="dashboard-columns">
 
     <div>
         <h2>Upcoming Meetings</h2>
@@ -76,13 +77,12 @@
         {% endif %}
     </div>
 
-    <div>
+    <div class="notepad-input">
         <h2>Enter Notes</h2>
         <form method="POST" action="{{ url_for('add_note') }}">
-            <input type="text" name="title" placeholder="Title (optional)" style="width: 260px;">
+            <input type="text" name="title" placeholder="Title (optional)">
+            <textarea class="lined-paper" name="notes" rows="6" placeholder="Enter notes..." required></textarea>
             <br><br>
-            <textarea name="notes" rows="6" cols="40" placeholder="Enter notes..." required></textarea>
-            <br>
             <button type="submit">Save Notes</button>
         </form>
     </div>
@@ -94,22 +94,24 @@
         </form>
         <br>
         {% if saved_notes %}
-            {% for note in saved_notes %}
-            <div style="border: 1px solid #999; border-radius: 6px; padding: 10px; margin-bottom: 10px; width: 260px;">
-                <details>
-                    <summary>{{ note.meeting_title }}</summary>
-                    <p>{{ note.notes }}</p>
-                </details>
-                <p><small>Saved {{ note.created_at | pretty_date }}</small></p>
-                {% if note.sent_at %}
-                    <p><small>Sent to Slack {{ note.sent_at | pretty_date }}</small></p>
-                {% else %}
-                    <form method="POST" action="{{ url_for('send_note_to_slack', note_id=note.id) }}">
-                        <button type="submit">Send to Slack</button>
-                    </form>
-                {% endif %}
+            <div class="notes-grid">
+                {% for note in saved_notes %}
+                <div class="note-card">
+                    <details>
+                        <summary>{{ note.meeting_title }}</summary>
+                        <p>{{ note.notes }}</p>
+                    </details>
+                    <p class="note-meta"><small>Saved {{ note.created_at | pretty_date }}</small></p>
+                    {% if note.sent_at %}
+                        <p class="note-meta"><small>Sent to Slack {{ note.sent_at | pretty_date }}</small></p>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('send_note_to_slack', note_id=note.id) }}">
+                            <button type="submit">Send to Slack</button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         {% else %}
             <p>No saved notes yet.</p>
         {% endif %}

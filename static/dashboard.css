@@ -1,0 +1,108 @@
+/* dashboard-only styles - loaded on top of the shared style.css */
+
+.dashboard-columns {
+    display: flex;
+    gap: 30px;
+    margin: 20px auto;
+    max-width: 1100px;
+    padding: 0 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.dashboard-columns > div {
+    background: #fffdf8;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+    flex: 1;
+    min-width: 260px;
+}
+
+/* the "Enter Notes" box, styled like a page torn from a notepad */
+.notepad-input input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Kalam', cursive;
+    font-size: 1.1em;
+    padding: 8px 10px;
+    border: none;
+    border-bottom: 2px solid #d8c9b0;
+    background: transparent;
+    margin-bottom: 10px;
+}
+
+.notepad-input input[type="text"]:focus {
+    outline: none;
+    border-bottom-color: #e8a5b8;
+}
+
+.lined-paper {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Kalam', cursive;
+    font-size: 1.05em;
+    line-height: 30px;
+    padding: 10px 14px 10px 44px;
+    background-color: #fffef6;
+    background-image:
+        linear-gradient(90deg, transparent 28px, #f3b8c4 28px, #f3b8c4 30px, transparent 30px),
+        repeating-linear-gradient(#fffef6, #fffef6 29px, #cfe0ee 29px, #cfe0ee 30px);
+    border: 1px solid #e5dcc8;
+    border-radius: 8px;
+    resize: vertical;
+}
+
+.lined-paper:focus {
+    outline: none;
+    border-color: #e8a5b8;
+}
+
+/* sticky-note style cards in the Saved Notes column */
+.notes-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.note-card {
+    border-radius: 4px;
+    padding: 14px;
+    box-shadow: 2px 4px 8px rgba(0,0,0,0.15);
+    font-family: 'Kalam', cursive;
+    transform: rotate(-1deg);
+}
+
+.note-card:nth-child(2n) {
+    transform: rotate(1deg);
+}
+
+.note-card:nth-child(3n) {
+    transform: rotate(-0.5deg);
+}
+
+.note-card:nth-child(5n+1) { background: #fff3b0; }
+.note-card:nth-child(5n+2) { background: #ffd6e0; }
+.note-card:nth-child(5n+3) { background: #c9f2d8; }
+.note-card:nth-child(5n+4) { background: #d6e4ff; }
+.note-card:nth-child(5n+5) { background: #e6d6ff; }
+
+.note-card summary {
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1.1em;
+}
+
+.note-card p {
+    font-family: 'Quicksand', sans-serif;
+}
+
+.note-card button {
+    background: #fffdf8;
+    border: 1px solid rgba(0,0,0,0.15);
+}
+
+.note-meta {
+    font-family: 'Quicksand', sans-serif;
+    color: #7a7166;
+}

@@ -1,22 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Quicksand:wght@400;600;700&display=swap');
+
 body {
-    font-family: Arial, sans-serif;
-    background: #f7f7f7;
+    font-family: 'Quicksand', sans-serif;
+    background: #faf3ec;
+    background-image:
+        radial-gradient(circle at 10% 20%, #fde2e4 0%, transparent 35%),
+        radial-gradient(circle at 90% 15%, #e2ece9 0%, transparent 35%),
+        radial-gradient(circle at 50% 90%, #eaddf7 0%, transparent 40%);
     margin: 0;
     padding: 0;
+    color: #4a4238;
+}
+
+h1, h2, h3 {
+    font-family: 'Kalam', cursive;
+    color: #6b5b4d;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 24px;
 }
 
 .top-nav {
-    background: #4a6fa5;
-    color: white;
-    padding: 20px;
+    background: #f6d9e3;
+    color: #6b5b4d;
+    padding: 18px;
     text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 .top-nav nav a {
-    color: white;
+    color: #6b5b4d;
     margin: 0 15px;
     text-decoration: none;
-    font-weight: bold;
+    font-family: 'Kalam', cursive;
+    font-weight: 700;
+    font-size: 1.05em;
 }
 
 .top-nav nav a:hover {
@@ -26,23 +46,26 @@ body {
 .content {
     max-width: 800px;
     margin: 40px auto;
-    background: white;
+    background: #fffdf8;
     padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
 }
 
 button {
-    background: #4a6fa5;
-    color: white;
-    padding: 10px 15px;
+    background: #cdeac0;
+    color: #4a4238;
+    padding: 10px 16px;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 button:hover {
-    background: #3a5a84;
+    background: #b8dfa8;
 }
 
 ul {
@@ -51,8 +74,14 @@ ul {
 }
 
 li {
-    background: #eef3fa;
+    background: #fef6e4;
     padding: 10px;
     margin-bottom: 10px;
-    border-radius: 5px;
+    border-radius: 8px;
+    border: 1px dashed #e8d8b8;
+}
+
+.flashes li {
+    background: #fff3cd;
+    border: 1px dashed #e0c27a;
 }
