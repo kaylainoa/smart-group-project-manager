@@ -57,17 +57,25 @@ def categorize_update(meeting_notes, commits, deadlines):
     If a category has nothing to put in it, write "- None" under that heading instead of
     leaving it empty.
     """
-
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=raw_data,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.3
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=raw_data,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.3
+            )
         )
-    )
+    except Exception as e:
+        print("Gemini categorization failed:", e)
 
-    return _parse_categorized_response(response.text)
+        return {
+            "completed": [],
+            "in_progress": [meeting_notes] if meeting_notes else [],
+            "blockers": [
+                "Gemini was temporarily unavailable, so this update was not AI-categorized."
+            ]
+        }
 
 
 # turns Gemini's "COMPLETED:\n- foo\n- bar" style reply into
