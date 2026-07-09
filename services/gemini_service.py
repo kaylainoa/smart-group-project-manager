@@ -16,17 +16,29 @@ def project_summary(meeting_notes, commits, deadlines):
     system_prompt = """
     Please take these raw meeting notes, commits, and deadlines and organize them into a clean project update for Slack.  Keep the tone completely professional and do not use any emojis. Start the message with a section called *Focus Areas* and use bolding to highlight the most important takeaways, risks, or urgent items right away. Underneath that, use standard bullet points to break down the general progress and next steps. Make sure to use Slack's markdown style, like asterisks for bolding.
     """
-    
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=raw_data,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.3
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=raw_data,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.3
+            )
         )
-    )
+        return response.text
 
-    return response.text
+    except Exception as e:
+            print("Gemini summary failed:", e)
+
+            return f"""
+    *Focus Areas*
+    - **Gemini was temporarily unavailable**, so this Slack update uses the raw project information instead.
+
+    *General Progress and Next Steps*
+    - Meeting notes: {meeting_notes}
+    - Recent GitHub activity: {commits}
+    - Upcoming deadlines: {deadlines}
+    """
 
 
 def categorize_update(meeting_notes, commits, deadlines):
