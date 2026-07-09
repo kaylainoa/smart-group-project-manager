@@ -58,7 +58,7 @@
         {% if meetings %}
             <ul>
                 {% for meeting in meetings %}
-                    <li>{{ meeting.title }} — {{ meeting.start_time }}</li>
+                    <li>{{ meeting.title }} — {{ meeting | meeting_schedule }}</li>
                 {% endfor %}
             </ul>
         {% else %}

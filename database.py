@@ -207,6 +207,8 @@ def init_db():
     # tracks when a note's update was posted to Slack, so its card can show
     # "Sent" instead of the button once that's happened
     _add_column_if_missing(conn, "meeting_notes", "sent_at", "TEXT")
+    # so the dashboard can show a time range ("11am-2pm") instead of just a start time
+    _add_column_if_missing(conn, "meetings", "end_time", "TEXT")
 
     conn.commit()
     conn.close()
@@ -238,12 +240,13 @@ def save_meeting(event, user_email, calendar_id):
     conn = get_connection()
     conn.execute("""
         INSERT OR IGNORE INTO meetings
-        (google_event_id, title, start_time, location, description, user_email, calendar_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (google_event_id, title, start_time, end_time, location, description, user_email, calendar_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         event["id"],
         event["title"],
         event["start"],
+        event.get("end"),
         event.get("location", ""),
         event.get("description", ""),
         user_email,

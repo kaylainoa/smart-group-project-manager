@@ -28,6 +28,50 @@ def pretty_date(value):
         return value
 
 
+# "2pm" instead of "02:00 PM" / "2:30pm" if it's not on the hour - no leading
+# zero, lowercase am/pm
+def _short_time(dt):
+    hour12 = dt.strftime("%I").lstrip("0") or "12"
+    ampm = dt.strftime("%p").lower()
+    if dt.minute == 0:
+        return f"{hour12}{ampm}"
+    return f"{hour12}:{dt.minute:02d}{ampm}"
+
+
+# lets templates do {{ meeting | meeting_schedule }} - same "Month Day Year"
+# format as pretty_date, plus a time range like "11am-2pm" for events that
+# actually have a time (all-day events just get the date, same as deadlines)
+@app.template_filter("meeting_schedule")
+def meeting_schedule(meeting):
+    start_raw = meeting.get("start_time")
+    if not start_raw:
+        return start_raw
+
+    try:
+        start_dt = datetime.fromisoformat(start_raw.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return start_raw
+
+    date_part = start_dt.strftime("%B %d %Y")
+
+    # all-day events come back as a bare date ("2026-07-18") with no "T" in
+    # it - there's no time to show for those
+    if "T" not in start_raw:
+        return date_part
+
+    end_raw = meeting.get("end_time")
+    end_dt = None
+    if end_raw:
+        try:
+            end_dt = datetime.fromisoformat(end_raw.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            end_dt = None
+
+    if end_dt:
+        return f"{date_part}, {_short_time(start_dt)}-{_short_time(end_dt)}"
+    return f"{date_part}, {_short_time(start_dt)}"
+
+
 database.init_db()
 
 

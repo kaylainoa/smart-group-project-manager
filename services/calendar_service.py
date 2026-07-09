@@ -91,12 +91,17 @@ def get_upcoming_events(credentials, calendar_id, max_results=10):
             "dateTime",
             event["start"].get("date")
         )
+        end = event.get("end", {}).get(
+            "dateTime",
+            event.get("end", {}).get("date")
+        )
 
         meeting_list.append(
             {
                 "id": event.get("id"),
                 "title": event.get("summary", "No Title"),
                 "start": start,
+                "end": end,
                 "location": event.get("location", ""),
                 "description": event.get("description", "")
             }
