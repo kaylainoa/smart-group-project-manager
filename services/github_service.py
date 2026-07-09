@@ -3,7 +3,7 @@
 
 import requests
 from config import GITHUB_TOKEN
-
+from datetime import datetime
 
 OWNER = "kaylainoa"
 REPO = "smart-group-project-manager"
@@ -69,10 +69,19 @@ def get_recent_commits():
     recent_commits = []
 
     for commit in commits[:5]:
+        raw_date = commit["commit"]["author"]["date"]
+
+        formatted_date = datetime.strptime(
+            raw_date,
+            "%Y-%m-%dT%H:%M:%SZ"
+        ).strftime("%b %d, %Y at %I:%M %p UTC")
+
         recent_commits.append({
             "author": commit["commit"]["author"]["name"],
             "message": commit["commit"]["message"],
-            "date": commit["commit"]["author"]["date"]
+            "date": formatted_date
         })
+
+    return recent_commits
 
     return recent_commits
