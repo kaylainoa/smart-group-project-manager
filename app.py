@@ -17,6 +17,23 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = "your-secret-key"
 
+class PrefixMiddleware:
+    def __init__(self, app, prefix=""):
+        self.app = app
+        self.prefix = prefix
+
+    def __call__(self, environ, start_response):
+        if self.prefix:
+            environ["SCRIPT_NAME"] = self.prefix
+            path_info = environ.get("PATH_INFO", "")
+            if path_info.startswith(self.prefix):
+                environ["PATH_INFO"] = path_info[len(self.prefix):]
+        return self.app(environ, start_response)
+
+
+proxy_prefix = os.environ.get("USE_PROXY_PREFIX", "")
+if proxy_prefix:
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=proxy_prefix)
 
 # lets templates do {{ some_date | pretty_date }} to turn the raw ISO timestamp
 # google gives us into something readable, like "July 10 2026"
