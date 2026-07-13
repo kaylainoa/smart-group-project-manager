@@ -1,0 +1,49 @@
+/* meetings-only styles - loaded on top of the shared style.css */
+
+.meetings-page {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.meeting-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 16px 0 30px;
+}
+
+.meeting-card {
+    background: #fffdf8;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+    flex: 1 1 280px;
+    box-sizing: border-box;
+    scroll-margin-top: 20px;
+}
+
+/* highlights the card you land on when clicking a meeting from the dashboard */
+.meeting-card:target {
+    outline: 3px solid #e8a5b8;
+    outline-offset: 2px;
+}
+
+.meeting-card h3 {
+    margin-top: 0;
+}
+
+.task-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-status {
+    font-family: 'Kalam', cursive;
+    background: #d6e4ff;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    white-space: nowrap;
+}

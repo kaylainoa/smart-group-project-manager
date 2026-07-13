@@ -3,89 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <title>Upcoming Team Meetings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='meetings.css') }}">
 </head>
 <body>
-    <h1>Upcoming Team Meetings</h1>
 
-    <p><a href="{{ url_for('home') }}">Back to Dashboard</a></p>
-    <p>Total Meetings: {{ meetings|length }}</p>
+<header class="top-nav">
+    <nav>
+        <a href="{{ url_for('home') }}">Dashboard</a>
+        <a href="{{ url_for('meetings') }}">Meetings</a>
+        <a href="{{ url_for('reports') }}">Reports</a>
+    </nav>
+</header>
+
+<h1>Upcoming Team Meetings</h1>
+
+<div class="meetings-page">
+
+    <p class="note-meta">Total Meetings: {{ meetings|length }}</p>
 
     {% if meetings %}
-    <table border="1" cellpadding="6">
-        <tr>
-            <th>Title</th>
-            <th>Start Time</th>
-            <th>Location</th>
-            <th>Description</th>
-            <th>Meeting Notes</th>
-        </tr>
+        <div class="meeting-cards">
+            {% for meeting in meetings %}
+            <div class="meeting-card" id="meeting-{{ meeting.id }}">
+                <h3>{{ meeting.title }}</h3>
+                <p class="note-meta">{{ meeting | meeting_schedule }}</p>
+                {% if meeting.location %}<p class="note-meta">{{ meeting.location }}</p>{% endif %}
+                {% if meeting.description %}<p>{{ meeting.description }}</p>{% endif %}
 
-        {% for meeting in meetings %}
-        <tr>
-            <td>{{ meeting.title }}</td>
-            <td>{{ meeting | meeting_schedule }}</td>
-            <td>{{ meeting.location or "—" }}</td>
-            <td>{{ meeting.description or "—" }}</td>
-            <td>
                 <form method="POST" action="{{ url_for('meetings') }}">
                     <input type="hidden" name="meeting_id" value="{{ meeting.id }}">
                     <input type="hidden" name="meeting_title" value="{{ meeting.title }}">
                     <input type="hidden" name="meeting_time" value="{{ meeting.start_time }}">
 
-                    <textarea name="notes" rows="4" cols="35" placeholder="Enter meeting notes..." required></textarea>
-                    <br>
+                    <textarea class="lined-paper" name="notes" rows="4" placeholder="Enter meeting notes..." required></textarea>
+                    <br><br>
                     <button type="submit">Save Notes + Generate Tasks</button>
                 </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+            </div>
+            {% endfor %}
+        </div>
     {% else %}
-    <p>No upcoming meetings.</p>
+        <p>No upcoming meetings.</p>
     {% endif %}
 
     <h2>Saved Meeting Notes</h2>
 
     {% if notes %}
-    <table border="1" cellpadding="6">
-        <tr>
-            <th>Meeting</th>
-            <th>Time</th>
-            <th>Notes</th>
-            <th>Created At</th>
-        </tr>
-
-        {% for note in notes %}
-        <tr>
-            <td>{{ note.meeting_title }}</td>
-            <td>{{ note.meeting_time }}</td>
-            <td>{{ note.notes }}</td>
-            <td>{{ note.created_at }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+        <div class="notes-grid">
+            {% for note in notes %}
+            <div class="note-card">
+                <form method="POST" action="{{ url_for('delete_note', note_id=note.id) }}" class="note-delete-form">
+                    <button type="submit" class="note-delete-btn" title="Delete note" aria-label="Delete note">&times;</button>
+                </form>
+                <details>
+                    <summary>{{ note.meeting_title }}</summary>
+                    <p>{{ note.notes }}</p>
+                </details>
+                <p class="note-meta"><small>{{ note.meeting_time }} — saved {{ note.created_at | pretty_date }}</small></p>
+            </div>
+            {% endfor %}
+        </div>
     {% else %}
-    <p>No meeting notes saved yet.</p>
+        <p>No meeting notes saved yet.</p>
     {% endif %}
 
     <h2>Generated Tasks</h2>
 
     {% if tasks %}
-    <table border="1" cellpadding="6">
-        <tr>
-            <th>Task</th>
-            <th>Status</th>
-        </tr>
-
-        {% for task in tasks %}
-        <tr>
-            <td>{{ task.task_text }}</td>
-            <td>{{ task.status }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+        <ul class="task-list">
+            {% for task in tasks %}
+                <li>{{ task.task_text }} <span class="task-status">{{ task.status }}</span></li>
+            {% endfor %}
+        </ul>
     {% else %}
-    <p>No tasks generated yet.</p>
+        <p>No tasks generated yet.</p>
     {% endif %}
+
+</div>
+
 </body>
 </html>

@@ -316,22 +316,13 @@ def save_meeting_notes(meeting_id, meeting_title, meeting_time, notes):
     return note_id
 
 
+# every saved note - both general notes from the dashboard's "Enter Notes" box
+# and ones tied to a specific meeting from /meetings - shown together as cards
+# on the dashboard's "Saved Notes" column
 def get_meeting_notes():
     conn = get_connection()
     rows = conn.execute(
         "SELECT * FROM meeting_notes ORDER BY created_at DESC"
-    ).fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
-
-
-# just the notes from the dashboard's "Enter Notes" box (meeting_id is NULL),
-# not the ones tied to a specific meeting on /meetings - shown as cards on
-# the dashboard's "Saved Notes" column
-def get_general_notes():
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM meeting_notes WHERE meeting_id IS NULL ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
@@ -350,6 +341,16 @@ def mark_note_sent(note_id):
         "UPDATE meeting_notes SET sent_at = ? WHERE id = ?",
         (datetime.now(timezone.utc).isoformat(), note_id)
     )
+    conn.commit()
+    conn.close()
+
+
+# the x button on a single note card - removes just that one note (and any
+# tasks generated from it), not the whole "Saved Notes" column
+def delete_note(note_id):
+    conn = get_connection()
+    conn.execute("DELETE FROM tasks WHERE note_id = ?", (note_id,))
+    conn.execute("DELETE FROM meeting_notes WHERE id = ?", (note_id,))
     conn.commit()
     conn.close()
 

@@ -12,7 +12,6 @@
     <nav>
         <a href="{{ url_for('home') }}">Dashboard</a>
         <a href="{{ url_for('meetings') }}">Meetings</a>
-        <a href="{{ url_for('deadlines') }}">Deadlines</a>
         <a href="{{ url_for('reports') }}">Reports</a>
     </nav>
 </header>
@@ -58,7 +57,11 @@
         {% if meetings %}
             <ul>
                 {% for meeting in meetings %}
-                    <li>{{ meeting.title }} — {{ meeting | meeting_schedule }}</li>
+                    <li>
+                        <a href="{{ url_for('meetings') }}#meeting-{{ meeting.id }}">
+                            {{ meeting.title }} — {{ meeting | meeting_schedule }}
+                        </a>
+                    </li>
                 {% endfor %}
             </ul>
         {% else %}
@@ -97,6 +100,9 @@
             <div class="notes-grid">
                 {% for note in saved_notes %}
                 <div class="note-card">
+                    <form method="POST" action="{{ url_for('delete_note', note_id=note.id) }}" class="note-delete-form">
+                        <button type="submit" class="note-delete-btn" title="Delete note" aria-label="Delete note">&times;</button>
+                    </form>
                     <details>
                         <summary>{{ note.meeting_title }}</summary>
                         <p>{{ note.notes }}</p>
